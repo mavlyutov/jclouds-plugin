@@ -12,24 +12,24 @@ import hudson.model.Hudson;
 @Extension
 public class PluginImpl extends Plugin implements Describable<PluginImpl> {
 
-	@Override
-	public void start() throws Exception {
-		load();
-	}
+    public static PluginImpl get() {
+        return Hudson.getInstance().getPlugin(PluginImpl.class);
+    }
 
-	public Descriptor<PluginImpl> getDescriptor() {
-		return (DescriptorImpl) Hudson.getInstance().getDescriptorOrDie(getClass());
-	}
+    @Override
+    public void start() throws Exception {
+        load();
+    }
 
-	public static PluginImpl get() {
-		return Hudson.getInstance().getPlugin(PluginImpl.class);
-	}
+    public Descriptor<PluginImpl> getDescriptor() {
+        return (DescriptorImpl) Hudson.getInstance().getDescriptorOrDie(getClass());
+    }
 
-	@Extension
-	public static final class DescriptorImpl extends Descriptor<PluginImpl> {
-		@Override
-		public String getDisplayName() {
-			return "JClouds PluginImpl";
-		}
-	}
+    @Extension
+    public static final class DescriptorImpl extends Descriptor<PluginImpl> {
+        @Override
+        public String getDisplayName() {
+            return "JClouds PluginImpl";
+        }
+    }
 }
