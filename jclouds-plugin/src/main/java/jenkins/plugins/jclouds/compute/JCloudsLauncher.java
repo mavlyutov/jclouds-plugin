@@ -98,34 +98,32 @@ public class JCloudsLauncher extends ComputerLauncher {
                     return; // failed to connect as root.
                 }
             }
-            conn = cleanupConn;
 
-            final Session sess = conn.openSession();
+            conn = cleanupConn;
+            final Session session = conn.openSession();
 
             if (JCloudsSlave.GuestOS.JNLP_WINDOWS.toString().equals(slave.getGuestOS())) {
-                JCloudsLauncher.copySlaveJarTo(
-                        conn, JCloudsSlave.GuestOS.JENKINS_SCRIPTS_LOCATION, logger);
+                JCloudsLauncher.copySlaveJarTo(conn, JCloudsSlave.GuestOS.JENKINS_SCRIPTS_LOCATION, logger);
                 String createLaunchScript =
-                        String.format(
-                                JCloudsSlave.GuestOS.CREATE_LAUNCH_SCRIPT_TEMPLATE,
+                        String.format(JCloudsSlave.GuestOS.CREATE_LAUNCH_SCRIPT_TEMPLATE,
                                 String.format(
                                         JCloudsSlave.GuestOS.JNLP_URL_TEMPLATE,
                                         jenkins.getRootUrl(),
                                         computer.getName()));
-                sess.execCommand(createLaunchScript);
+                session.execCommand(createLaunchScript);
             } else if (JCloudsSlave.GuestOS.UNIX.toString().equals(slave.getGuestOS())) {
                 JCloudsLauncher.copySlaveJarTo(conn, "/tmp", logger);
                 String launchString = "java  -jar /tmp/slave.jar";
-                sess.execCommand(launchString);
+                session.execCommand(launchString);
             } else {
                 conn.close();
                 return;
             }
 
-            computer.setChannel(sess.getStdout(), sess.getStdin(), logger, new Channel.Listener() {
+            computer.setChannel(session.getStdout(), session.getStdin(), logger, new Channel.Listener() {
                 @Override
                 public void onClosed(Channel channel, IOException cause) {
-                    sess.close();
+                    session.close();
                     conn.close();
                 }
             });

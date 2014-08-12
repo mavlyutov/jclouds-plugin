@@ -174,55 +174,50 @@ public class JCloudsCloud extends Cloud {
      */
     @Override
     public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload) {
-        final JCloudsSlaveTemplate t = getTemplate(label);
+        final JCloudsSlaveTemplate template = getTemplate(label);
+        List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
 
-        List<PlannedNode> r = new ArrayList<PlannedNode>();
-        while (excessWorkload > 0
-                && !Jenkins.getInstance().isQuietingDown()
-                && !Jenkins.getInstance().isTerminating()) {
-            if ((getRunningNodesCount() + r.size()) >= instanceCap) {
+        while (excessWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
+            if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
                 LOGGER.info("Instance cap reached while adding capacity for label " + ((label != null) ? label.toString() : "null"));
                 break; // maxed out
             }
 
-            r.add(new PlannedNode(t.name, Computer.threadPoolForRemoting.submit(new Callable<Node>() {
+            plannedNodeList.add(new PlannedNode(template.name, Computer.threadPoolForRemoting.submit(new Callable<Node>() {
                 public Node call() throws Exception {
                     // TODO: record the output somewhere
-                    JCloudsSlave slave = t.provisionSlave(StreamTaskListener.fromStdout());
+                    JCloudsSlave slave = template.provisionSlave(StreamTaskListener.fromStdout());
                     Jenkins.getInstance().addNode(slave);
-                    /* Cloud instances may have a long init script. If we declare
-						the provisioning complete by returning without the connect
-						operation, NodeProvisioner may decide that it still wants one
-						more instance, because it sees that (1) all the slaves are
-						offline (because it's still being launched) and (2) there's no
-						capacity provisioned yet. Deferring the completion of
-						provisioning until the launch goes successful prevents this
-						problem.  */
 
-                    int timeout = 60 * 1000;
+                    /* Cloud instances may have a long init script. If we declare the provisioning complete by returning
+                    without the connect operation, NodeProvisioner may decide that it still wants one more instance,
+                    because it sees that (1) all the slaves are offline (because it's still being launched) and (2)
+                    there's no capacity provisioned yet. Deferring the completion of provisioning until the launch goes
+                    successful prevents this problem.  */
+
+                    /* Try to connect to provisioned slave. connect might not succeed from the first
+                    time. In this case retry for up to timeout. */
+                    int timeout = 60 * 5 * 1000;
                     int counter = 0;
-                    int retryStep = 15 * 1000;
-                    Computer computer = slave.toComputer();
-
-					/* When starting slave via JNLP, connect might not succeed from the first
-					time. In this case retry for up to timeout. */
+                    int retryStep = 5 * 1000;
                     while (counter <= timeout) {
                         Thread.sleep(retryStep);
                         counter += retryStep;
                         try {
-                            computer.connect(false).get();
+                            slave.toComputer().connect(false).get();
                         } catch (Exception e) {
                             continue;
                         }
                         break;
                     }
 
+                    slave.toComputer().connect(false).get();
                     return slave;
                 }
-            }), Util.tryParseNumber(t.numExecutors, 1).intValue()));
-            excessWorkload -= t.getNumExecutors();
+            }), Util.tryParseNumber(template.numExecutors, 1).intValue()));
+            excessWorkload -= template.getNumExecutors();
         }
-        return r;
+        return plannedNodeList;
     }
 
     @Override
