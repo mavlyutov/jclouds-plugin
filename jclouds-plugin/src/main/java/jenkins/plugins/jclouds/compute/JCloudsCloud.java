@@ -173,11 +173,13 @@ public class JCloudsCloud extends Cloud {
      * {@inheritDoc}
      */
     @Override
-    public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload) {
+    public Collection<NodeProvisioner.PlannedNode> provision(Label label, final int excessWorkload) {
         final JCloudsSlaveTemplate template = getTemplate(label);
+        Integer currentWorkload = excessWorkload;
+
         List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
 
-        while (excessWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
+        while (currentWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
             if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
                 LOGGER.info("Instance cap reached while adding capacity for label " + ((label != null) ? label.toString() : "null"));
                 break; // maxed out
@@ -206,6 +208,7 @@ public class JCloudsCloud extends Cloud {
                         try {
                             slave.toComputer().connect(false).get();
                         } catch (Exception e) {
+                            LOGGER.fine("Cannot connect to provisioned node: " + slave.getDisplayName());
                             continue;
                         }
                         break;
@@ -215,7 +218,8 @@ public class JCloudsCloud extends Cloud {
                     return slave;
                 }
             }), Util.tryParseNumber(template.numExecutors, 1).intValue()));
-            excessWorkload -= template.getNumExecutors();
+            currentWorkload -= template.getNumExecutors();
+            LOGGER.info("JClouds slave provisioned successfully, current excessWorkload of label " + label.getDisplayName() + " is " + excessWorkload);
         }
         return plannedNodeList;
     }
