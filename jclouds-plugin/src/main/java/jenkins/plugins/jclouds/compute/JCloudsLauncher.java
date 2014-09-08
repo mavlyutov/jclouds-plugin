@@ -29,10 +29,10 @@ public class JCloudsLauncher extends ComputerLauncher {
     /**
      * Copies Slave.jar to a given destination using provided connection.
      *
-     * @param connection        {@link Connection} to a remote host.
+     * @param connection {@link Connection} to a remote host.
      * @param destinationFolder {@link String} with an absolute path to a folder to copy slave.jar
      *                          to.
-     * @param logger            {@link PrintStream} to log status to.
+     * @param logger {@link PrintStream} to log status to.
      * @throws IOException If copying went wrong.
      */
     private static void copySlaveJarTo(
@@ -105,15 +105,12 @@ public class JCloudsLauncher extends ComputerLauncher {
             if (JCloudsSlave.GuestOS.JNLP_WINDOWS.toString().equals(slave.getGuestOS())) {
                 JCloudsLauncher.copySlaveJarTo(conn, JCloudsSlave.GuestOS.JENKINS_SCRIPTS_LOCATION, logger);
                 String createLaunchScript =
-                        String.format(JCloudsSlave.GuestOS.CREATE_LAUNCH_SCRIPT_TEMPLATE,
-                                String.format(
-                                        JCloudsSlave.GuestOS.JNLP_URL_TEMPLATE,
-                                        jenkins.getRootUrl(),
-                                        computer.getName()));
+                        String.format(JCloudsSlave.GuestOS.CREATE_LAUNCH_SCRIPT_TEMPLATE, slave.getJvmOptions(),
+                                String.format(JCloudsSlave.GuestOS.JNLP_URL_TEMPLATE, jenkins.getRootUrl(), computer.getName()));
                 session.execCommand(createLaunchScript);
             } else if (JCloudsSlave.GuestOS.UNIX.toString().equals(slave.getGuestOS())) {
                 JCloudsLauncher.copySlaveJarTo(conn, "/tmp", logger);
-                String launchString = "java  -jar /tmp/slave.jar";
+                String launchString = "java -jar " + slave.getJvmOptions() + " /tmp/slave.jar";
                 session.execCommand(launchString);
             } else {
                 conn.close();
@@ -149,7 +146,7 @@ public class JCloudsLauncher extends ComputerLauncher {
      * Authenticates using the bootstrapConn, tries to 20 times before giving up.
      *
      * @param bootstrapConn
-     * @param nodeMetadata  - JClouds compute instance {@link NodeMetadata} for IP address and credentials.
+     * @param nodeMetadata - JClouds compute instance {@link NodeMetadata} for IP address and credentials.
      * @param logger
      * @return
      * @throws IOException
@@ -197,7 +194,7 @@ public class JCloudsLauncher extends ComputerLauncher {
      * Connect to SSH, and return the connection.
      *
      * @param nodeMetadata - JClouds compute instance {@link NodeMetadata}, for credentials and the public IP.
-     * @param logger       - the logger where the log messages need to be sent.
+     * @param logger - the logger where the log messages need to be sent.
      * @return - Connection - keeps trying forever, until the host closes the connection or we (the thread) die trying.
      * @throws InterruptedException
      */

@@ -56,9 +56,11 @@ public class JCloudsComputer extends AbstractCloudComputer<JCloudsSlave> {
      * @throws InterruptedException
      */
     public void deleteSlave() throws IOException, InterruptedException {
-        LOGGER.info("Terminating " + getName() + " slave");
+        LOGGER.info("Terminating slave: " + getName());
         JCloudsSlave slave = getNode();
+        LOGGER.info("got slave: " + slave.getDisplayName());
         if (slave.getChannel() != null) {
+            LOGGER.info("got channel: " + slave.getDisplayName());
             slave.getChannel().close();
         }
         slave.terminate();

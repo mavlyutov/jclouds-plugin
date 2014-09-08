@@ -73,23 +73,25 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
     public final String vmUser;
     public final String vmPassword;
     public final boolean preInstalledJava;
+    private final String jvmOptions;
     public final boolean preExistingJenkinsUser;
+    private final String jenkinsUser;
+    private final String fsRoot;
     public final boolean allowSudo;
     public final boolean installPrivateKey;
     public final int overrideRetentionTime;
     public final int spoolDelayMs;
+    private final Object delayLockObject = new Object();
     public final boolean assignFloatingIp;
     public final String keyPairName;
     public final boolean assignPublicIp;
     public final String networks;
     public final String securityGroups;
     public final String guestOS;
-    private final String jvmOptions;
-    private final String jenkinsUser;
-    private final String fsRoot;
-    private final Object delayLockObject = new Object();
-    protected transient JCloudsCloud cloud;
+    public final int guestOsStartupTimeout;
     private transient Set<LabelAtom> labelSet;
+
+    protected transient JCloudsCloud cloud;
 
     @DataBoundConstructor
     public JCloudsSlaveTemplate(final String name, final String imageId, final String imageNameRegex, final String hardwareId, final double cores,
@@ -97,7 +99,8 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
                                 final String initScript, final String userData, final String numExecutors, final boolean stopOnTerminate, final String vmPassword, final String vmUser,
                                 final boolean preInstalledJava, final String jvmOptions, final String jenkinsUser, final boolean preExistingJenkinsUser, final String fsRoot,
                                 final boolean allowSudo, final boolean installPrivateKey, final int overrideRetentionTime, final int spoolDelayMs, final boolean assignFloatingIp,
-                                final String keyPairName, final boolean assignPublicIp, final String networks, final String securityGroups, final String guestOS) {
+                                final String keyPairName, final boolean assignPublicIp, final String networks, final String securityGroups, final String guestOS,
+                                final int guestOsStartupTimeout) {
 
         this.name = Util.fixEmptyAndTrim(name);
         this.imageId = Util.fixEmptyAndTrim(imageId);
@@ -131,6 +134,7 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
         this.networks = networks;
         this.securityGroups = securityGroups;
         this.guestOS = guestOS;
+        this.guestOsStartupTimeout = guestOsStartupTimeout;
         readResolve();
     }
 
@@ -138,7 +142,7 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
         try {
             final CSVReader reader = new CSVReader(new StringReader(csv), SEPARATOR_CHAR);
             final String[] line = reader.readNext();
-            return (line != null) ? line : new String[0];
+            return (line != null) ? line: new String[0];
         } catch (Exception e) {
             return new String[0];
         }
@@ -193,7 +197,7 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
 
         try {
             return new JCloudsSlave(getCloud().getDisplayName(), getFsRoot(), nodeMetadata, labelString, description, numExecutors, stopOnTerminate,
-                    overrideRetentionTime, getJvmOptions(), guestOS);
+                    overrideRetentionTime, getJvmOptions(), guestOS, guestOsStartupTimeout);
         } catch (Descriptor.FormException e) {
             throw new AssertionError("Invalid configuration " + e.getMessage());
         }
@@ -235,12 +239,12 @@ public class JCloudsSlaveTemplate implements Describable<JCloudsSlaveTemplate>, 
         Template template = templateBuilder.build();
         TemplateOptions options = template.getOptions();
 
-        if (!Strings.isNullOrEmpty(networks)) {
+        if (!Strings.isNullOrEmpty(networks)){
             LOGGER.info("Setting networks to " + networks);
             options.networks(csvToArray(networks));
         }
 
-        if (!Strings.isNullOrEmpty(securityGroups)) {
+        if (!Strings.isNullOrEmpty(securityGroups)){
             LOGGER.info("Setting security groups to " + securityGroups);
             options.securityGroups(csvToArray(securityGroups));
         }

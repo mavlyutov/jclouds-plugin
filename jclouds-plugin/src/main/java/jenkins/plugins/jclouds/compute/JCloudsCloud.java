@@ -175,11 +175,12 @@ public class JCloudsCloud extends Cloud {
     @Override
     public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload) {
         final JCloudsSlaveTemplate template = getTemplate(label);
-
         List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
-        while (excessWorkload > 0
-                && !Jenkins.getInstance().isQuietingDown()
-                && !Jenkins.getInstance().isTerminating()) {
+
+        LOGGER.info("Beginning to provision slave");
+
+        while (excessWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
+
             if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
                 LOGGER.info("Instance cap reached while adding capacity for label " + ((label != null) ? label.toString() : "null"));
                 break; // maxed out
@@ -227,7 +228,13 @@ public class JCloudsCloud extends Cloud {
 
     @Override
     public boolean canProvision(final Label label) {
-        return getTemplate(label) != null;
+        boolean isNull = getTemplate(label) != null;
+        if (isNull) {
+            LOGGER.info("Can provision because label isn't null");
+        } else {
+            LOGGER.info("Can't provision because label is null");
+        }
+        return isNull;
     }
 
     public JCloudsSlaveTemplate getTemplate(String name) {
