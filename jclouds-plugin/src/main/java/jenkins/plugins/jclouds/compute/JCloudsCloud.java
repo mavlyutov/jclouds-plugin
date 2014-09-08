@@ -179,6 +179,8 @@ public class JCloudsCloud extends Cloud {
 
         List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
 
+        LOGGER.info("Beginning to provision slave")
+
         while (currentWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
             if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
                 LOGGER.info("Instance cap reached while adding capacity for label " + ((label != null) ? label.toString() : "null"));
@@ -226,7 +228,13 @@ public class JCloudsCloud extends Cloud {
 
     @Override
     public boolean canProvision(final Label label) {
-        return getTemplate(label) != null;
+        boolean isNull = getTemplate(label) != null;
+        if (isNull) {
+            LOGGER.info("Can provision because label isn't null")
+        } else {
+            LOGGER.info("Can't provision because label is null")
+        }
+        return isNull;
     }
 
     public JCloudsSlaveTemplate getTemplate(String name) {
