@@ -179,7 +179,7 @@ public class JCloudsCloud extends Cloud {
 
         List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
 
-        LOGGER.info("Beginning to provision slave")
+        LOGGER.info("Beginning to provision slave");
 
         while (currentWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
             if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
@@ -230,9 +230,9 @@ public class JCloudsCloud extends Cloud {
     public boolean canProvision(final Label label) {
         boolean isNull = getTemplate(label) != null;
         if (isNull) {
-            LOGGER.info("Can provision because label isn't null")
+            LOGGER.info("Can provision because label isn't null");
         } else {
-            LOGGER.info("Can't provision because label is null")
+            LOGGER.info("Can't provision because label is null");
         }
         return isNull;
     }
