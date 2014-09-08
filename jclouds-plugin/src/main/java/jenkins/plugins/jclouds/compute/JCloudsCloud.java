@@ -173,15 +173,13 @@ public class JCloudsCloud extends Cloud {
      * {@inheritDoc}
      */
     @Override
-    public Collection<NodeProvisioner.PlannedNode> provision(Label label, final int excessWorkload) {
+    public Collection<NodeProvisioner.PlannedNode> provision(Label label, int excessWorkload) {
         final JCloudsSlaveTemplate template = getTemplate(label);
-        Integer currentWorkload = excessWorkload;
 
         List<PlannedNode> plannedNodeList = new ArrayList<PlannedNode>();
-
-        LOGGER.info("Beginning to provision slave")
-
-        while (currentWorkload > 0 && !Jenkins.getInstance().isQuietingDown() && !Jenkins.getInstance().isTerminating()) {
+        while (excessWorkload > 0
+                && !Jenkins.getInstance().isQuietingDown()
+                && !Jenkins.getInstance().isTerminating()) {
             if ((getRunningNodesCount() + plannedNodeList.size()) >= instanceCap) {
                 LOGGER.info("Instance cap reached while adding capacity for label " + ((label != null) ? label.toString() : "null"));
                 break; // maxed out
@@ -192,7 +190,6 @@ public class JCloudsCloud extends Cloud {
                     // TODO: record the output somewhere
                     JCloudsSlave slave = template.provisionSlave(StreamTaskListener.fromStdout());
                     Jenkins.getInstance().addNode(slave);
-
                     /* Cloud instances may have a long init script. If we declare the provisioning complete by returning
                     without the connect operation, NodeProvisioner may decide that it still wants one more instance,
                     because it sees that (1) all the slaves are offline (because it's still being launched) and (2)
@@ -201,40 +198,36 @@ public class JCloudsCloud extends Cloud {
 
                     /* Try to connect to provisioned slave. connect might not succeed from the first
                     time. In this case retry for up to timeout. */
-                    int timeout = 60 * 5 * 1000;
+                    int timeout = slave.getGuestOsStartupTimeout() * 1000;
                     int counter = 0;
                     int retryStep = 5 * 1000;
                     while (counter <= timeout) {
                         Thread.sleep(retryStep);
                         counter += retryStep;
-                        try {
-                            slave.toComputer().connect(false).get();
-                        } catch (Exception e) {
-                            LOGGER.fine("Cannot connect to provisioned node: " + slave.getDisplayName());
-                            continue;
+                        try { slave.toComputer().connect(false).get(); }
+                        catch (Exception e) {
+                            if (counter > timeout) {
+                                LOGGER.info(String.format("Failed to connect to slave within timeout (%d ms).", timeout));
+                                throw e;
+                            }
+                            else {
+                                continue;
+                            }
                         }
                         break;
                     }
-
-                    slave.toComputer().connect(false).get();
                     return slave;
                 }
             }), Util.tryParseNumber(template.numExecutors, 1).intValue()));
-            currentWorkload -= template.getNumExecutors();
-            LOGGER.info("JClouds slave provisioned successfully, current workload of label " + label.getDisplayName() + " is " + currentWorkload + ", queue length: " + excessWorkload);
+            excessWorkload -= template.getNumExecutors();
+            LOGGER.info("JClouds slave provisioned successfully, current excessWorkload of label " + label.getDisplayName() + " is " + excessWorkload);
         }
         return plannedNodeList;
     }
 
     @Override
     public boolean canProvision(final Label label) {
-        boolean isNull = getTemplate(label) != null;
-        if (isNull) {
-            LOGGER.info("Can provision because label isn't null")
-        } else {
-            LOGGER.info("Can't provision because label is null")
-        }
-        return isNull;
+        return getTemplate(label) != null;
     }
 
     public JCloudsSlaveTemplate getTemplate(String name) {
