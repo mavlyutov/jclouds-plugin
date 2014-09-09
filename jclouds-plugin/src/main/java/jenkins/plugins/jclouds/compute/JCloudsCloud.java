@@ -228,13 +228,10 @@ public class JCloudsCloud extends Cloud {
 
     @Override
     public boolean canProvision(final Label label) {
-        boolean isNull = getTemplate(label) != null;
-        if (isNull) {
-            LOGGER.info("Can provision because label isn't null");
-        } else {
-            LOGGER.info("Can't provision because label is null");
-        }
-        return isNull;
+        boolean isNotNull = getTemplate(label) != null;
+        String msg = isNotNull ? "Can provision known label: " + label.getDisplayName(): "Can't provision because label is null";
+        LOGGER.info(msg);
+        return isNotNull;
     }
 
     public JCloudsSlaveTemplate getTemplate(String name) {
