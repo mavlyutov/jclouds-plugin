@@ -141,11 +141,7 @@ public class JCloudsCloud extends Cloud {
      * Get the retention time, defaulting to 30 minutes.
      */
     public int getRetentionTime() {
-        if (retentionTime == 0) {
-            return 30;
-        } else {
-            return retentionTime;
-        }
+        return retentionTime == 0 ? 30 : retentionTime;
     }
 
     public ComputeService getCompute() {
