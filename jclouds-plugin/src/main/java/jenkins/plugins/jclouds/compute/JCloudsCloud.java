@@ -9,6 +9,7 @@ import hudson.slaves.NodeProvisioner;
 import hudson.slaves.NodeProvisioner.PlannedNode;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import hudson.util.StreamTaskListener;
 import jenkins.model.Jenkins;
 import org.jclouds.Constants;
@@ -63,7 +64,7 @@ public class JCloudsCloud extends Cloud {
         }
     }, new EnterpriseConfigurationModule());
     public final String identity;
-    public final String credential;
+    public final Secret credential;
     public final String providerName;
     public final String privateKey;
     public final String publicKey;
@@ -85,7 +86,7 @@ public class JCloudsCloud extends Cloud {
         this.profile = Util.fixEmptyAndTrim(profile);
         this.providerName = Util.fixEmptyAndTrim(providerName);
         this.identity = Util.fixEmptyAndTrim(identity);
-        this.credential = Util.fixEmptyAndTrim(credential);
+        this.credential = Secret.fromString(credential);
         this.privateKey = privateKey;
         this.publicKey = publicKey;
         this.endPointUrl = Util.fixEmptyAndTrim(endPointUrl);
@@ -93,7 +94,7 @@ public class JCloudsCloud extends Cloud {
         this.retentionTime = retentionTime;
         this.scriptTimeout = scriptTimeout;
         this.startTimeout = startTimeout;
-        this.templates = Objects.firstNonNull(templates, Collections.<JCloudsSlaveTemplate>emptyList());
+        this.templates = Objects.firstNonNull(templates, Collections.<JCloudsSlaveTemplate> emptyList());
         this.zones = Util.fixEmptyAndTrim(zones);
         readResolve();
     }
@@ -156,7 +157,7 @@ public class JCloudsCloud extends Cloud {
             if (startTimeout > 0) {
                 overrides.setProperty(ComputeServiceProperties.TIMEOUT_NODE_RUNNING, String.valueOf(startTimeout));
             }
-            this.compute = ctx(this.providerName, this.identity, this.credential, overrides, this.zones).getComputeService();
+            this.compute = ctx(this.providerName, this.identity, Secret.toString(credential), overrides, this.zones).getComputeService();
         }
         return compute;
     }
@@ -323,7 +324,7 @@ public class JCloudsCloud extends Cloud {
             // Remove empty text/whitespace from the fields.
             providerName = Util.fixEmptyAndTrim(providerName);
             identity = Util.fixEmptyAndTrim(identity);
-            credential = Util.fixEmptyAndTrim(credential);
+            credential = Secret.fromString(credential).getPlainText();
             endPointUrl = Util.fixEmptyAndTrim(endPointUrl);
             zones = Util.fixEmptyAndTrim(zones);
 
@@ -379,7 +380,7 @@ public class JCloudsCloud extends Cloud {
             Thread.currentThread().setContextClassLoader(Apis.class.getClassLoader());
             // TODO: apis need endpoints, providers don't; do something smarter
             // with this stuff :)
-            Builder<String> builder = ImmutableSet.<String>builder();
+            Builder<String> builder = ImmutableSet.<String> builder();
             builder.addAll(Iterables.transform(Apis.viewableAs(ComputeServiceContext.class), Apis.idFunction()));
             builder.addAll(Iterables.transform(Providers.viewableAs(ComputeServiceContext.class), Providers.idFunction()));
             Iterable<String> supportedProviders = ImmutableSortedSet.copyOf(builder.build());
@@ -395,7 +396,7 @@ public class JCloudsCloud extends Cloud {
             Thread.currentThread().setContextClassLoader(Apis.class.getClassLoader());
             // TODO: apis need endpoints, providers don't; do something smarter
             // with this stuff :)
-            Builder<String> builder = ImmutableSet.<String>builder();
+            Builder<String> builder = ImmutableSet.<String> builder();
             builder.addAll(Iterables.transform(Apis.viewableAs(ComputeServiceContext.class), Apis.idFunction()));
             builder.addAll(Iterables.transform(Providers.viewableAs(ComputeServiceContext.class), Providers.idFunction()));
             Iterable<String> supportedProviders = builder.build();
