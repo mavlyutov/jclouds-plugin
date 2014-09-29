@@ -47,6 +47,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 /**
@@ -184,7 +185,7 @@ public class JCloudsCloud extends Cloud {
             }
 
             plannedNodeList.add(new PlannedNode(template.name, Computer.threadPoolForRemoting.submit(new Callable<Node>() {
-                public Node call() throws Exception {
+                public Node call() throws InterruptedException, IOException, ExecutionException {
                     // TODO: record the output somewhere
                     JCloudsSlave slave = template.provisionSlave(StreamTaskListener.fromStdout());
                     Jenkins.getInstance().addNode(slave);
@@ -203,7 +204,7 @@ public class JCloudsCloud extends Cloud {
                         Thread.sleep(retryStep);
                         counter += retryStep;
                         try { slave.toComputer().connect(false).get(); }
-                        catch (Exception e) {
+                        catch (ExecutionException e) {
                             if (counter > timeout) {
                                 LOGGER.info(String.format("Failed to connect to slave within timeout (%d ms).", timeout));
                                 throw e;
