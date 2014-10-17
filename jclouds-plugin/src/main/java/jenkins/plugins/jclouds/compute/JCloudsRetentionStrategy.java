@@ -4,21 +4,21 @@ import hudson.model.Descriptor;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
 import hudson.util.TimeUnit2;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
+
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * @author Vijay Kiran
  */
 public class JCloudsRetentionStrategy extends RetentionStrategy<JCloudsComputer> {
-    private static final Logger LOGGER = Logger.getLogger(JCloudsRetentionStrategy.class.getName());
-    public static boolean disabled = Boolean.getBoolean(JCloudsRetentionStrategy.class.getName() + ".disabled");
-    private ReentrantLock checkLock = new ReentrantLock(false);
+    private transient ReentrantLock checkLock;
 
     @DataBoundConstructor
     public JCloudsRetentionStrategy() {
+        readResolve();
     }
 
     @Override
@@ -65,5 +65,14 @@ public class JCloudsRetentionStrategy extends RetentionStrategy<JCloudsComputer>
             return "JClouds";
         }
     }
+
+    protected Object readResolve() {
+        checkLock = new ReentrantLock(false);
+        return this;
+    }
+
+    private static final Logger LOGGER = Logger.getLogger(JCloudsRetentionStrategy.class.getName());
+
+    public static boolean disabled = Boolean.getBoolean(JCloudsRetentionStrategy.class.getName() + ".disabled");
 
 }
