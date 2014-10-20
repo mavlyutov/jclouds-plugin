@@ -219,7 +219,6 @@ public class JCloudsCloud extends Cloud {
                 }
             }), Util.tryParseNumber(template.numExecutors, 1).intValue()));
             excessWorkload -= template.getNumExecutors();
-            LOGGER.info("JClouds slave provisioned successfully, current excessWorkload of label " + label.getDisplayName() + " is " + excessWorkload);
         }
         return plannedNodeList;
     }
